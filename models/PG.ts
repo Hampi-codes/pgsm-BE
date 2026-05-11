@@ -1,6 +1,19 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-const pgSchema = new mongoose.Schema({
+export interface IPG extends Document {
+  name: string;
+  location: string;
+  type: "Boys" | "Girls" | "Co-ed";
+  description: string;
+  floors: number;
+  startingRent?: number;
+  amenities: string[];
+  images: string[];
+  soldOut: boolean;
+  createdAt: Date;
+}
+
+const pgSchema: Schema = new Schema({
   name: { type: String, required: true },
   location: { type: String, required: true },
   type: { type: String, enum: ["Boys", "Girls", "Co-ed"], required: true },
@@ -13,5 +26,5 @@ const pgSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-const PG = mongoose.model("PG", pgSchema);
+const PG = mongoose.model<IPG>("PG", pgSchema);
 export default PG;

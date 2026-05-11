@@ -1,6 +1,9 @@
+import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { AuthRequest } from "../types/index.js";
 
-export const verifyToken = (req, res, next) => {
+
+export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).json({ msg: "No token provided" });
@@ -8,7 +11,7 @@ export const verifyToken = (req, res, next) => {
 
   const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string; role: string };
     req.user = decoded;
     next();
   } catch (err) {

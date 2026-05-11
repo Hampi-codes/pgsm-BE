@@ -6,7 +6,7 @@ import connectDB from "../config/db.js";
 dotenv.config();
 connectDB();
 
-const seedAdmin = async () => {
+const seedAdmin = async (): Promise<void> => {
   try {
     const existing = await User.findOne({ username: "admin" });
     if (existing) {
@@ -25,7 +25,7 @@ const seedAdmin = async () => {
     await admin.save();
     console.log("✅ Admin created successfully");
     process.exit();
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Error seeding admin:", error.message);
     process.exit(1);
   }

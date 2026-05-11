@@ -21,7 +21,7 @@ app.use(cors());               // Enable CORS
 app.use(express.json());       // Parse JSON request bodies
 
 // Health check endpoint
-app.get("/", (req, res) => {
+app.get("/", (req: express.Request, res: express.Response) => {
   res.send("🏠 PG API running...");
 });
 

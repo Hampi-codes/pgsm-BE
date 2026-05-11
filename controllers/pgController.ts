@@ -1,17 +1,22 @@
+import { Request, Response } from "express";
 import PG from "../models/PG.js";
 import cloudinary from "../config/cloudinary.js";
 
-async function uploadImagesToCloudinary(files) {
+interface CloudinaryUploadResult {
+  secure_url: string;
+}
+
+async function uploadImagesToCloudinary(files: Express.Multer.File[]): Promise<string[]> {
   const urls = await Promise.all(
     files.map(
       (file) =>
-        new Promise((resolve, reject) => {
+        new Promise<string>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
             { resource_type: "image" },
-            (error, result) => {
+            (error: any, result: any) => {
               if (error) {
                 console.error("Cloudinary upload error:", error);
-                return reject(error); // ✅ don't throw, reject instead
+                return reject(error);
               }
               resolve(result.secure_url);
             }
@@ -23,12 +28,11 @@ async function uploadImagesToCloudinary(files) {
   return urls;
 }
 
-export const getAllPGs = async (req, res) => {
+export const getAllPGs = async (req: Request, res: Response) => {
   try {
     const { pgTypes, amenities, sortBy, availability } = req.query;
 
-    // Build Mongo filter
-    const mongoFilter = {};
+    const mongoFilter: any = {};
 
     if (pgTypes) {
       const typesArray = String(pgTypes)
@@ -50,16 +54,13 @@ export const getAllPGs = async (req, res) => {
       }
     }
 
-    // Availability filter
     if (availability === "available") {
       mongoFilter.soldOut = false;
     } else if (availability === "sold-out") {
       mongoFilter.soldOut = true;
     }
-    // If no availability specified, don't filter by availability
 
-    // Build sort
-    const mongoSort = {};
+    const mongoSort: any = {};
     if (sortBy === "price-low") {
       mongoSort.startingRent = 1;
     } else if (sortBy === "price-high") {
@@ -68,22 +69,22 @@ export const getAllPGs = async (req, res) => {
 
     const pgs = await PG.find(mongoFilter).sort(mongoSort);
     res.json(pgs);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-export const getPGById = async (req, res) => {
+export const getPGById = async (req: Request, res: Response) => {
   try {
     const pg = await PG.findById(req.params.id);
     if (!pg) return res.status(404).json({ message: "PG not found" });
     res.json(pg);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-export const createPG = async (req, res) => {
+export const createPG = async (req: Request, res: Response) => {
   try {
     const existing = await PG.findOne({ name: req.body.name });
     if (existing) {
@@ -92,9 +93,10 @@ export const createPG = async (req, res) => {
         .json({ message: "PG with this name already exists" });
     }
 
-    let imageUrls = [];
-    if (req.files?.length) {
-      imageUrls = await uploadImagesToCloudinary(req.files);
+    let imageUrls: string[] = [];
+    const files = req.files as Express.Multer.File[];
+    if (files?.length) {
+      imageUrls = await uploadImagesToCloudinary(files);
     } else if (req.body.images) {
       imageUrls = Array.isArray(req.body.images)
         ? req.body.images
@@ -109,7 +111,7 @@ export const createPG = async (req, res) => {
       message: "PG created successfully",
       data: saved,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Error in createPG:", err);
     res.status(400).json({
       success: false,
@@ -119,9 +121,8 @@ export const createPG = async (req, res) => {
   }
 };
 
-export const updatePG = async (req, res) => {
+export const updatePG = async (req: Request, res: Response) => {
   try {
-    // Check if PG exists
     const existingPG = await PG.findById(req.params.id);
     if (!existingPG) {
       return res.status(404).json({
@@ -130,9 +131,8 @@ export const updatePG = async (req, res) => {
       });
     }
 
-    let imageUrls = [];
+    let imageUrls: string[] = [];
 
-    // Handle existing images (URLs)
     if (req.body.existingImages) {
       const existingImages = Array.isArray(req.body.existingImages)
         ? req.body.existingImages
@@ -140,18 +140,15 @@ export const updatePG = async (req, res) => {
       imageUrls.push(...existingImages);
     }
 
-    // Handle new images (files)
-    if (req.files && req.files.length > 0) {
-      const newImageUrls = await uploadImagesToCloudinary(req.files);
+    const files = req.files as Express.Multer.File[];
+    if (files && files.length > 0) {
+      const newImageUrls = await uploadImagesToCloudinary(files);
       imageUrls.push(...newImageUrls);
     }
 
     const updateData = { ...req.body };
-    // Remove the existingImages field from updateData since we've processed it
     delete updateData.existingImages;
     delete updateData.newImages;
-
-    // Set the combined images array
     updateData.images = imageUrls;
 
     const updated = await PG.findByIdAndUpdate(req.params.id, updateData, {
@@ -171,7 +168,7 @@ export const updatePG = async (req, res) => {
       message: "PG updated successfully",
       data: updated,
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(400).json({
       success: false,
       message: "Failed to update PG",
@@ -180,7 +177,7 @@ export const updatePG = async (req, res) => {
   }
 };
 
-export const deletePG = async (req, res) => {
+export const deletePG = async (req: Request, res: Response) => {
   try {
     const pg = await PG.findById(req.params.id);
     if (!pg) {
@@ -195,7 +192,7 @@ export const deletePG = async (req, res) => {
       success: true,
       message: "PG deleted successfully",
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({
       success: false,
       message: "Failed to delete PG",

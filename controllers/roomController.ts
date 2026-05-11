@@ -1,8 +1,10 @@
+import { Request, Response } from "express";
 import Room from "../models/Room.js";
 import PG from "../models/PG.js";
+import { Types } from "mongoose";
 
 // Helper to update soldOut status for a PG
-async function updatePGSoldOutStatus(pgId) {
+async function updatePGSoldOutStatus(pgId: Types.ObjectId | string): Promise<void> {
   const rooms = await Room.find({ pgId });
   if (rooms.length === 0) {
     // No rooms, not sold out
@@ -13,34 +15,34 @@ async function updatePGSoldOutStatus(pgId) {
   await PG.findByIdAndUpdate(pgId, { soldOut: allOccupied });
 }
 
-export const getRoomsByPG = async (req, res) => {
+export const getRoomsByPG = async (req: Request, res: Response) => {
   try {
     const rooms = await Room.find({ pgId: req.params.pgId }).sort({
       floor: 1,
       roomNo: 1,
     });
     res.json(rooms);
-  } catch (err) {
+  } catch (err: any) {
     res
       .status(500)
       .json({ message: "Failed to fetch rooms", error: err.message });
   }
 };
 
-export const createRoom = async (req, res) => {
+export const createRoom = async (req: Request, res: Response) => {
   try {
     const room = new Room(req.body);
     const saved = await room.save();
     await updatePGSoldOutStatus(saved.pgId);
     res.status(201).json(saved);
-  } catch (err) {
+  } catch (err: any) {
     res
       .status(400)
       .json({ message: "Failed to create room", error: err.message });
   }
 };
 
-export const updateRoom = async (req, res) => {
+export const updateRoom = async (req: Request, res: Response) => {
   try {
     const updated = await Room.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -49,14 +51,14 @@ export const updateRoom = async (req, res) => {
       await updatePGSoldOutStatus(updated.pgId);
     }
     res.json(updated);
-  } catch (err) {
+  } catch (err: any) {
     res
       .status(400)
       .json({ message: "Failed to update room", error: err.message });
   }
 };
 
-export const deleteRoom = async (req, res) => {
+export const deleteRoom = async (req: Request, res: Response) => {
   try {
     const room = await Room.findById(req.params.id);
     if (!room) {
@@ -65,7 +67,7 @@ export const deleteRoom = async (req, res) => {
     await Room.findByIdAndDelete(req.params.id);
     await updatePGSoldOutStatus(room.pgId);
     res.json({ message: "Room deleted successfully" });
-  } catch (err) {
+  } catch (err: any) {
     res
       .status(500)
       .json({ message: "Failed to delete room", error: err.message });
