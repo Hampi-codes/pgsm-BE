@@ -16,12 +16,50 @@ export const loginAdmin = async (req: AuthRequest, res: Response) => {
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: "1d" }
+      { expiresIn: "30m" },
     );
 
-    res.status(200).json({ token, username: user.username });
+    const refreshToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "7d" },
+    );
+
+    res.status(200).json({ token, refreshToken, username: user.username });
   } catch (err: any) {
     res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+export const refreshToken = async (req: AuthRequest, res: Response) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ msg: "No refresh token provided" });
+  }
+
+  try {
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_SECRET as string,
+    ) as { id: string; role: string };
+
+    const token = jwt.sign(
+      { id: decoded.id, role: decoded.role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "15m" },
+    );
+
+    // Refresh Token Rotation: Issue a new refresh token
+    const newRefreshToken = jwt.sign(
+      { id: decoded.id, role: decoded.role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "7d" },
+    );
+
+    res.status(200).json({ token, refreshToken: newRefreshToken });
+  } catch (err) {
+    res.status(403).json({ msg: "Invalid refresh token" });
   }
 };
 
